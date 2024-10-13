@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "RedGifs Downloader",
+  "description": "Download videos from RedGifs",
+  "version": "0.1",
+  "permissions": ["downloads", "activeTab"],
+  "host_permissions": [
+    "https://redgifs.com/watch/*"
+  ],
+  "action": {
+    "default_title": "Download Video",
+    "default_icon": {
+     "16": "icon16.png",
+     "32": "icon32.png",
+     "48": "icon48.png",
+     "128": "icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
