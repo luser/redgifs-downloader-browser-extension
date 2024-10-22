@@ -3,7 +3,7 @@
   "name": "RedGifs Downloader",
   "description": "Download videos from RedGifs",
   "version": "0.1",
-  "permissions": ["downloads", "activeTab"],
+  "permissions": ["downloads", "activeTab", "scripting"],
   "host_permissions": [
     "https://redgifs.com/watch/*"
   ],
