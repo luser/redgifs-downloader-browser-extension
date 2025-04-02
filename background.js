@@ -1,4 +1,4 @@
-const URL_REGEX = new RegExp("https://files.redgifs.com/[^.]+.(m4s|mp4)$", "m");
+const URL_REGEX = new RegExp("https://(files|media).redgifs.com/[^.]+.(m4s|mp4)$", "m");
 
 function checkVideoURL() {
   const player = document.querySelector(".Player-Video > video");
@@ -12,11 +12,21 @@ function checkVideoURL() {
   return null;
 }
 
-function downloadVideo(videoUrl) {
-  const filename = videoUrl.split("/").pop();
-  const gifNameCaps = filename.split(".")[0];
-  console.log(`downloading ${gifNameCaps} from ${videoUrl}`);
-  chrome.downloads.download({ url: videoUrl, filename: `${gifNameCaps}.mp4` });
+async function filenameMaybePrefixed(filename) {
+  const KEY = "downloadSubDirectory";
+  const result = await chrome.storage.local.get(KEY);
+  if (KEY in result) {
+        return result[KEY] + "/" + filename;
+  }
+  return filename;
+}
+
+async function downloadVideo(videoUrl) {
+  const videoBaseName = videoUrl.split("/").pop();
+  const gifNameCaps = videoBaseName.split(".")[0];
+  const filename = await filenameMaybePrefixed(`${gifNameCaps}.mp4`);
+  console.log(`downloading ${gifNameCaps} from ${videoUrl} to ${filename}`);
+  chrome.downloads.download({ url: videoUrl, filename });
 }
 
 async function findAndDownloadVideo(tab) {
