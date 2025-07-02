@@ -4,7 +4,11 @@
   "description": "Download videos from RedGifs",
   "version": "1.0",
   "permissions": ["downloads", "activeTab", "scripting","storage"],
-  "host_permissions": ["https://redgifs.com/watch/*"],
+  "host_permissions": [
+    "https://redgifs.com/watch/*",
+    "https://redditp.com/*",
+    "https://www.redditp.com/*"
+  ],
   "action": {
     "default_title": "Download Video",
     "default_icon": {

@@ -12,6 +12,17 @@ function checkVideoURL() {
   return null;
 }
 
+function checkRedditpURL() {
+  const link = document.getElementById('navboxLink');
+  if (link && link.hasAttribute("href")) {
+    const src = link.getAttribute("href");
+    if (src) {
+      return src;
+    }
+  }
+  return null;
+}
+
 async function filenameMaybePrefixed(filename) {
   const KEY = "downloadSubDirectory";
   const result = await chrome.storage.local.get(KEY);
@@ -29,24 +40,48 @@ async function downloadVideo(videoUrl) {
   chrome.downloads.download({ url: videoUrl, filename });
 }
 
+async function getGifName(tab) {
+  let u = new URL(tab.url);
+  if (tab.url.includes('redditp')) {
+    console.log('Trying redditp detection…');
+    let injectionResults = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: checkRedditpURL,
+    });
+    for (const { frameId, result } of injectionResults) {
+      if (result) {
+        u = new URL(result);
+        break;
+      }
+    }
+  }
+  if (u.hostname.endsWith('redgifs.com')) {
+    return u.pathname.split("/")[2];
+  } else {
+    return null;
+  }
+}
+
 async function findAndDownloadVideo(tab) {
-  // First, see if the video player has a `src` attribute (this is the easy case)
-  let injectionResults = await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    func: checkVideoURL,
-  });
-  for (const { frameId, result } of injectionResults) {
-    // If we found it via <video src=""> then we're done!
-    //console.log(`checkVideoURL returned: '${result}'`);
-    if (result && URL_REGEX.test(result)) {
-      downloadVideo(result);
-      return;
+  const u = new URL(tab.url);
+  if (u.hostname.endsWith('redgifs.com')) {
+    // First, see if the video player has a `src` attribute (this is the easy case)
+    let injectionResults = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: checkVideoURL,
+    });
+    for (const { frameId, result } of injectionResults) {
+      // If we found it via <video src=""> then we're done!
+      //console.log(`checkVideoURL returned: '${result}'`);
+      if (result && URL_REGEX.test(result)) {
+        downloadVideo(result);
+        return;
+      }
     }
   }
 
   // Otherwise, fetch the playlist and get the video URL from it.
-  const u = new URL(tab.url);
-  const gifname = u.pathname.split("/")[2];
+  const gifname = await getGifName(tab);
   if (gifname) {
     const playlist = `https://api.redgifs.com/v2/gifs/${gifname}/sd.m3u8`;
     console.log(`fetching playlist: ${playlist}`);
