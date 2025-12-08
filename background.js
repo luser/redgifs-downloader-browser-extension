@@ -1,9 +1,22 @@
 const URL_REGEX = new RegExp("https://(files|media).redgifs.com/[^.]+.(m4s|mp4)$", "m");
+const POSTER_REGEX = new RegExp("https://(files|media).redgifs.com/[^.]+.(jpg)$", "m");
 
 function checkVideoURL() {
   const player = document.querySelector(".Player-Video > video");
   if (player && player.hasAttribute("src")) {
     const src = player.getAttribute("src");
+    if (src) {
+      // We'll check if it matches the regex in the main script.
+      return src;
+    }
+  }
+  return null;
+}
+
+function checkVideoURLFromPoster() {
+  const poster = document.querySelector(".GifPreview_isActive .Player-Poster");
+  if (poster && poster.hasAttribute("src")) {
+    const src = poster.getAttribute("src");
     if (src) {
       // We'll check if it matches the regex in the main script.
       return src;
@@ -40,10 +53,34 @@ async function downloadVideo(videoUrl) {
   chrome.downloads.download({ url: videoUrl, filename });
 }
 
+function isRedditP(url) {
+  return url.hostname.endsWith('redditp.com') || url.host == 'cache.meerkat-boa.ts.net:4443';
+}
+
+async function findVideoFromPosterSrc(tab) {
+  console.log('Trying poster src…');
+  let injectionResults = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: checkVideoURLFromPoster,
+    });
+    for (const { frameId, result } of injectionResults) {
+      if (result && POSTER_REGEX.test(result)) {
+        let u = new URL(result);
+        let gifname = u.pathname.substring(1).split('-')[0];
+        if (gifname) {
+          return gifname.toLowerCase();
+        }
+      }
+    }
+  return null;
+}
+
 async function getGifName(tab) {
   let u = new URL(tab.url);
-  if (tab.url.includes('redditp')) {
+  if (isRedditP(u)) {
     console.log('Trying redditp detection…');
+    // TODO: use chrome.webNavigation.getAllFrames to find redgifs frame, go from there.
+    // requires "webNavigation" permission in manifest.
     let injectionResults = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: checkRedditpURL,
@@ -56,17 +93,22 @@ async function getGifName(tab) {
     }
   }
   if (u.hostname.endsWith('redgifs.com')) {
-    return u.pathname.split("/")[2];
+    if (u.pathname.startsWith('/watch/')) {
+      return u.pathname.split("/")[2];
+    } else {
+      // See if we can get it from the poster image.
+      let gifname = await findVideoFromPosterSrc(tab);
+      if (gifname) {
+        return gifname;
+      }
+    }
   } else {
     return null;
   }
 }
 
-async function findAndDownloadVideo(tab) {
-  const u = new URL(tab.url);
-  if (u.hostname.endsWith('redgifs.com')) {
-    // First, see if the video player has a `src` attribute (this is the easy case)
-    let injectionResults = await chrome.scripting.executeScript({
+async function findVideoFromVideoSrc(tab) {
+  let injectionResults = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: checkVideoURL,
     });
@@ -74,9 +116,20 @@ async function findAndDownloadVideo(tab) {
       // If we found it via <video src=""> then we're done!
       //console.log(`checkVideoURL returned: '${result}'`);
       if (result && URL_REGEX.test(result)) {
-        downloadVideo(result);
-        return;
+        return result;
       }
+    }
+  return null;
+}
+
+async function findAndDownloadVideo(tab) {
+  const u = new URL(tab.url);
+  if (u.hostname.endsWith('redgifs.com')) {
+    // First, see if the video player has a `src` attribute (this is the easy case)
+    let result = await findVideoFromVideoSrc(tab);
+    if (result) {
+      downloadVideo(result);
+      return;
     }
   }
 
