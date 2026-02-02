@@ -7,7 +7,8 @@
   "host_permissions": [
     "https://redgifs.com/*",
     "https://redditp.com/*",
-    "https://www.redditp.com/*"
+    "https://www.redditp.com/*",
+    "https://redditp.meerkat-boa.ts.net/*"
   ],
   "action": {
     "default_title": "Download Video",

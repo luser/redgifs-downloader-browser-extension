@@ -54,7 +54,7 @@ async function downloadVideo(videoUrl) {
 }
 
 function isRedditP(url) {
-  return url.hostname.endsWith('redditp.com') || url.host == 'cache.meerkat-boa.ts.net:4443';
+  return url.hostname.endsWith('redditp.com') || url.host == 'redditp.meerkat-boa.ts.net';
 }
 
 async function findVideoFromPosterSrc(tab) {
